@@ -1,0 +1,1 @@
+# jisho-scraper-for-anki
