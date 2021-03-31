@@ -10,11 +10,10 @@ URL_LIST = []
 
 
 def save_audio_as_mp3(source, word):
-    audio_link = 'https:' + source
+    audio_link = f'https:{source}'
     audio = requests.get(audio_link)
 
-    audio_filename = 'audio_' + word + '.mp3'
-    filename = ANKI_MEDIA_PATH + '\\' + audio_filename
+    filename = f'{ANKI_MEDIA_PATH}\\audio_{word}.mp3'
     with open(filename, 'wb') as audio_file:
         audio_file.write(audio.content)
     print(source)
@@ -73,7 +72,7 @@ def parse_word_page(soup):
     info_list = parse_word_info(word_soup, word)
     sound_res_anki = ""
     if info_list[1]:
-        sound_res_anki = '[sound:audio_' + word + '.mp3]'
+        sound_res_anki = f'[sound:audio_{word}.mp3]'
 
     return word_html + [sound_res_anki] + [info_list[0]] + [meanings_html]
 
