@@ -45,7 +45,8 @@ def parse_word(answer_div):
     word_span = answer_div.find('span', attrs={'class': 'text'})
     furigana_span = answer_div.find('span', attrs={'class': 'furigana'})
 
-    word = word_span.string.strip()
+    word = word_span.text.strip()
+    print(f'Word: {word}')
 
     return [word, furigana_span]
 
@@ -126,6 +127,7 @@ if __name__ == "__main__":
 
     html_lists = []
     for URL in URL_LIST:
+        print(f'Scraping page {URL}')
         html_lists.append(scrap_page(URL))
 
     with open(OUTPUT_PATH, 'w', encoding='utf-8') as f:
