@@ -16,7 +16,6 @@ def save_audio_as_mp3(source, word):
     filename = f'{ANKI_MEDIA_PATH}\\audio_{word}.mp3'
     with open(filename, 'wb') as audio_file:
         audio_file.write(audio.content)
-    print(source)
 
 
 def parse_word_info(word_soup, word):
@@ -81,7 +80,6 @@ def parse_kanji_in_word_page(soup):
     kanji_soup = soup.find('div', attrs={'class': 'kanji_light_block'})
     debug_div_list = kanji_soup.find_all('div', attrs={'class': 'debug'})
     for debug_div in debug_div_list:
-        print(debug_div.prettify())
         debug_div.decompose()
     return [kanji_soup]
 
@@ -117,7 +115,6 @@ if __name__ == "__main__":
         for line in f:
             if link := line.strip():
                 URL_LIST.append(link)
-    print(URL_LIST)
 
     if 'ANKI_MEDIA_PATH' not in os.environ:
         print('ANKI_MEDIA_PATH is not in environment variables. Please specify Anki collection.media path.')
