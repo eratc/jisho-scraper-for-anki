@@ -1,136 +1,69 @@
-import requests
 import os
-import re
 import csv
 import argparse
-from bs4 import BeautifulSoup
 
-ANKI_MEDIA_PATH = ""
-URL_LIST = []
-
-
-def save_audio_as_mp3(source, word):
-    audio_link = f'https:{source}'
-    audio = requests.get(audio_link)
-
-    filename = f'{ANKI_MEDIA_PATH}\\audio_{word}.mp3'
-    with open(filename, 'wb') as audio_file:
-        audio_file.write(audio.content)
+import vocab_from_links
+import kanji_from_links
 
 
-def parse_word_info(word_soup, word):
-    info_div = word_soup.find('div', attrs={'class': 'concept_light-status'})
-    new_info_div = BeautifulSoup('<div class="concept_light-status"></div>', 'html.parser')
+def get_links_from_file(input_path, output_path):
+    url_list = []
+    if not os.path.isfile(input_path) and not os.path.isfile(output_path):
+        print('Input and/or output file do not exist.')
+        exit()
 
-    is_common = False
-    if common_span := info_div.find('span', string='Common word'):
-        is_common = True
-        new_info_div.div.append(common_span)
+    with open(input_path, 'r') as f:
+        for line in f:
+            if link := line.strip():
+                url_list.append(link)
 
-    jlpt_level = ""
-    if jlpt_tag := word_soup.find('span', string=re.compile('JLPT')):
-        new_info_div.div.append(jlpt_tag)
-        jlpt_level = jlpt_tag.string.replace(' ', '-')
-
-    has_audio = False
-    if audio_tag := word_soup.find('audio'):
-        audio_source_tag = audio_tag.find('source', attrs={'type': 'audio/mpeg'})
-        save_audio_as_mp3(audio_source_tag.attrs['src'], word)
-        has_audio = True
-
-    return [new_info_div, has_audio, is_common, jlpt_level]
+    return url_list
 
 
-def parse_word(answer_div):
-    word_span = answer_div.find('span', attrs={'class': 'text'})
-    furigana_span = answer_div.find('span', attrs={'class': 'furigana'})
-
-    word = word_span.text.strip()
-    print(f'Word: {word}')
-
-    return [word, furigana_span]
+def scrap_vocab(url):
+    return vocab_from_links.scrap_page(url)
 
 
-def parse_meanings(meanings_div):
-    if wiki_tags := meanings_div.find('div', string='Wikipedia definition'):
-        wiki_description = wiki_tags.nextSibling
-        wiki_tags.decompose()
-        wiki_description.decompose()
-    return meanings_div
+def scrap_kanji(url):
+    return kanji_from_links.scrap_page(url)
 
 
-def parse_word_page(soup):
-    word_soup = soup.find('article')
+def scrap_from_jisho(args, scrap_func):
+    url_list = get_links_from_file(args.I, args.O)
 
-    answer_div = word_soup.find('div', attrs={'class': 'concept_light-representation'})
-    word_html = parse_word(answer_div)
+    html_lists = []
+    for url in url_list:
+        print(f'Scraping page {url}')
+        html_lists.append(scrap_func(url))
 
-    meanings_div = word_soup.find('div', attrs={'class': 'meanings-wrapper'})
-    meanings_html = parse_meanings(meanings_div)
-    word = word_html[0]
-
-    info_list = parse_word_info(word_soup, word)
-    sound_res_anki = ""
-    if info_list[1]:
-        sound_res_anki = f'[sound:audio_{word}.mp3]'
-
-    return word_html + [sound_res_anki] + [info_list[0]] + [meanings_html]
+    with open(args.O, 'w', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        for row in html_lists:
+            writer.writerow(row)
 
 
-def parse_kanji_in_word_page(soup):
-    kanji_soup = soup.find('div', attrs={'class': 'kanji_light_block'})
-    debug_div_list = kanji_soup.find_all('div', attrs={'class': 'debug'})
-    for debug_div in debug_div_list:
-        debug_div.decompose()
-    return [kanji_soup]
-
-
-def scrap_page(url):
-    page = requests.get(url)
-    soup = BeautifulSoup(page.content, 'html.parser')
-
-    result = soup.find('div', id='page_container')
-
-    word_html_list = parse_word_page(result)
-    kanji_html_list = parse_kanji_in_word_page(result)
-
-    html_list = word_html_list + kanji_html_list
-
-    return html_list
+def main(args):
+    if card_type := args.to_card:
+        # if card_type == 'vocab' and 'ANKI_MEDIA_PATH' not in os.environ:
+        #     print('ANKI_MEDIA_PATH is not in environment variables. Please specify Anki collection.media path.')
+        #     print(os.environ)
+        #     exit()
+        # else:
+        #     ANKI_MEDIA_PATH = os.environ['ANKI_MEDIA_PATH']
+        #     print('Audio files will be saved to Anki media path: ', ANKI_MEDIA_PATH)
+        scrap_func = scrap_vocab if card_type == 'vocab' else scrap_kanji
+        scrap_from_jisho(args, scrap_func)
+    else:
+        pass
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate Anki cards from Jisho links.')
     parser.add_argument('-I', type=str, help='Input file path for Jisho links')
     parser.add_argument('-O', type=str, help='Output file path for Anki cards')
-    args = parser.parse_args()
-
-    INPUT_PATH = args.I
-    OUTPUT_PATH = args.O
-
-    if not os.path.isfile(INPUT_PATH) and not os.path.isfile(OUTPUT_PATH):
-        print('Input and/or output file do not exist.')
-        exit()
-
-    with open(INPUT_PATH, 'r') as f:
-        for line in f:
-            if link := line.strip():
-                URL_LIST.append(link)
-
-    if 'ANKI_MEDIA_PATH' not in os.environ:
-        print('ANKI_MEDIA_PATH is not in environment variables. Please specify Anki collection.media path.')
-        print(os.environ)
-        exit()
-    else:
-        ANKI_MEDIA_PATH = os.environ['ANKI_MEDIA_PATH']
-        print('Audio files will be saved to Anki media path: ', ANKI_MEDIA_PATH)
-
-    html_lists = []
-    for URL in URL_LIST:
-        print(f'Scraping page {URL}')
-        html_lists.append(scrap_page(URL))
-
-    with open(OUTPUT_PATH, 'w', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        for row in html_lists:
-            writer.writerow(row)
+    action_group = parser.add_mutually_exclusive_group(required=True)
+    action_group.add_argument('--to_card', default='vocab', nargs='?', choices=['vocab', 'kanji'],
+                              help='Turn list of vocab/kanji Jisho links to Anki cards.')
+    action_group.add_argument('--list', default='kanji', nargs='?', choices=['kanji'],
+                              help='Do a Jisho search and get all links, write them down to a text file.')
+    main(parser.parse_args())
