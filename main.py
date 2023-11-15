@@ -4,6 +4,7 @@ import argparse
 
 import vocab_from_links
 import kanji_from_links
+import kanji_link_from_search
 
 
 def get_links_from_file(input_path, output_path):
@@ -44,15 +45,10 @@ def scrap_from_jisho(args, scrap_func):
 
 def main(args):
     if card_type := args.to_card:
-        # if card_type == 'vocab' and 'ANKI_MEDIA_PATH' not in os.environ:
-        #     print('ANKI_MEDIA_PATH is not in environment variables. Please specify Anki collection.media path.')
-        #     print(os.environ)
-        #     exit()
-        # else:
-        #     ANKI_MEDIA_PATH = os.environ['ANKI_MEDIA_PATH']
-        #     print('Audio files will be saved to Anki media path: ', ANKI_MEDIA_PATH)
         scrap_func = scrap_vocab if card_type == 'vocab' else scrap_kanji
         scrap_from_jisho(args, scrap_func)
+    elif args.list == 'kanji':
+        kanji_link_from_search.list_kanji_from_search(args.search_url, args.O)
     else:
         pass
 
@@ -61,9 +57,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate Anki cards from Jisho links.')
     parser.add_argument('-I', type=str, help='Input file path for Jisho links')
     parser.add_argument('-O', type=str, help='Output file path for Anki cards')
+    parser.add_argument('-u', '--search_url', type=str, help='Search URL for listing all links')
+
     action_group = parser.add_mutually_exclusive_group(required=True)
-    action_group.add_argument('--to_card', default='vocab', nargs='?', choices=['vocab', 'kanji'],
+    action_group.add_argument('--to_card', nargs='?', choices=['vocab', 'kanji'],
                               help='Turn list of vocab/kanji Jisho links to Anki cards.')
-    action_group.add_argument('--list', default='kanji', nargs='?', choices=['kanji'],
+    action_group.add_argument('--list', nargs='?', choices=['kanji'],
                               help='Do a Jisho search and get all links, write them down to a text file.')
     main(parser.parse_args())
