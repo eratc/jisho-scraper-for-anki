@@ -42,8 +42,8 @@ styling of Jisho to create notes which look like Jisho pages with some custom ch
 ## Create Kanji Cards
 
  1. Create a note type in Anki with following fields: {Kanji, Description, Kun, On, Level, Link}
- 2. Use html from [this gist](link) for the back template of cards.
- 3. Use the CSS from [this gist](link).
+ 2. Use html from [this gist](https://gist.github.com/eratc/6acf28534a8561a6d1f947f79cc12e6f) for the back template of cards.
+ 3. Use the CSS from [this gist](https://gist.github.com/eratc/384562145d1c62c5dd6d663e1db3fe3c).
  4. Create a ```.txt``` file that contains Jisho links like as before.
  5. Run ```main.py``` with ```--to_card kanji``` flag instead.
  6. Import ```.csv``` file the same way.
